@@ -1,0 +1,14 @@
+{
+  "name": "hello-perplexity",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Canonical Perplexity API reference — Search + Chat Completions, clean client, runnable examples",
+  "scripts": {
+    "search": "node examples/01-basic-search.js",
+    "chat": "node examples/04-chat-completions.js",
+    "deep": "node examples/05-deep-research.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  }
+}
