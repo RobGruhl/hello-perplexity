@@ -2,6 +2,10 @@
 
 Canonical Perplexity API reference. Clean client, runnable examples, docs.
 
+## ⚠️ House rule: Search API only
+
+**Use `search()` and nothing else.** Do NOT use `chat()`, `reason()`, or `deepResearch()` (the sonar / sonar-pro / sonar-reasoning-pro / sonar-deep-research chat models). Perplexity is a search engine here; **Claude does the reasoning and synthesis** from raw `search()` results. The chat functions stay in the lib for API-reference completeness and because other projects copy it — but they're not the path here. `search()` is flat-rate, fast, returns raw results + citations, and avoids the chat 30s-timeout. (When working a query: `search()` → hand `results`/`citations` to Claude → Claude synthesizes.)
+
 ## File Map
 
 ```

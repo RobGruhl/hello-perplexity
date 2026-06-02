@@ -4,49 +4,40 @@ Canonical reference for the Perplexity API. Clean client, runnable examples, doc
 
 **Perplexity is a search engine, not an LLM.** You have Claude for reasoning — Perplexity is for current web information with citations.
 
+> ## 🔎 House rule: use the Search API only
+> In this setup we use **`search()`** and nothing else. The **Chat Completions (sonar) models are intentionally not used** — Claude does the reasoning and synthesis from raw search results.
+> - `search()` is flat-rate ($5/1K requests), returns raw results + citations, and is fast.
+> - It avoids the chat 30s-timeout gotcha entirely.
+> - The `chat()` / `reason()` / `deepResearch()` functions remain in the lib for **API-reference completeness only** (and because other projects copy this lib) — don't reach for them here.
+
 ## Quick Start
 
 ```bash
 cp .env.example .env      # add your pplx-... key
-bun install
+bun install               # installs dotenv (examples use `import 'dotenv/config'`)
 node examples/01-basic-search.js
 ```
 
-## Two APIs
+> Ad-hoc scripts must load the key themselves — either `import 'dotenv/config';` at the top (the examples' pattern) or run with `node --env-file=.env script.mjs`. The lib does **not** auto-load `.env`.
 
-| Endpoint | What | Pricing | When |
-|----------|------|---------|------|
-| `/search` | Web search results + answer | $5/1K requests (flat) | Raw results, batch queries, date filtering |
-| `/chat/completions` | Model-specific chat with search | Token-priced | Complex synthesis, reasoning, deep research |
+## The Search API (`/search`)
 
-## Models (Chat Completions only)
-
-| Model | ID | Use case |
-|-------|-----|----------|
-| Sonar | `sonar` | Quick lookups (cheapest) |
-| Sonar Pro | `sonar-pro` | Complex multi-source queries |
-| Sonar Reasoning Pro | `sonar-reasoning-pro` | Chain-of-thought analysis |
-| Sonar Deep Research | `sonar-deep-research` | Exhaustive reports (1-5 min) |
-
-## Client Library
+Flat-rate web search ($5/1K requests). No model. Returns raw results (`title`, `url`, `snippet`) + citations. Supports batch queries (array of up to 5 strings), domain filtering, and date ranges.
 
 ```js
-import { search, chat, deepResearch, reason } from './lib/perplexity.js';
+import 'dotenv/config';
+import { search } from './lib/perplexity.js';
 
-// Search API — flat rate, raw search results (no synthesized answer)
-const { results, citations } = await search('query');
-
-// Chat Completions — synthesized answer with citations
-const r1 = await chat('query');                  // sonar-pro (default)
-const r2 = await deepResearch('topic');          // 6 min timeout
-const r3 = await reason('comparison');           // chain-of-thought
-// r1.answer, r1.citations, r1.raw
+const { results, citations } = await search('your query');
+results.forEach(r => console.log(r.title, r.url, r.snippet));
 
 // Explicit API key (vs env var)
 import { createClient } from './lib/perplexity.js';
 const pplx = createClient('pplx-...');
 await pplx.search('query');
 ```
+
+There is no synthesized `answer` field from `/search` — that's by design. Hand the `results` + `citations` to Claude for synthesis.
 
 ## Examples
 
@@ -55,18 +46,14 @@ await pplx.search('query');
 | 01 | `basic-search.js` | Simplest Search API call |
 | 02 | `domain-filtering.js` | Allow/block domains |
 | 03 | `date-filtering.js` | Recency + date range + spoiler safety |
-| 04 | `chat-completions.js` | Chat API, system prompts, search modes |
-| 05 | `deep-research.js` | Exhaustive multi-source reports |
-| 06 | `reasoning.js` | Chain-of-thought with search |
-| 07 | `streaming.js` | SSE streaming responses |
-| 08 | `structured-output.js` | JSON Schema responses |
-| 09 | `openai-sdk-compat.js` | Using OpenAI SDK with Perplexity |
 | 10 | `parallel-search.js` | Concurrent search queries |
+
+*Search-only examples. (04 chat-completions, 05 deep-research, 06 reasoning, 07 streaming, 08 structured-output, 09 openai-sdk-compat remain on disk as Chat-API references but are **not used here** — see House rule above.)*
 
 ## Docs
 
 - [API Reference](docs/01-api-reference.md) — Both endpoints, auth, request/response shapes
-- [Models](docs/02-models.md) — Model comparison + selection decision tree
+- [Models](docs/02-models.md) — Model comparison (Chat API reference only)
 - [Parameters](docs/03-parameters.md) — Every parameter with examples and gotchas
 - [MCP Setup](docs/04-mcp-setup.md) — Using Perplexity as MCP tools for Claude
 - [Patterns](docs/05-patterns.md) — Domain filtering, spoiler safety, authority tiers, parallel search
