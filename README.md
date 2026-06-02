@@ -4,11 +4,12 @@ Canonical reference for the Perplexity API. Clean client, runnable examples, doc
 
 **Perplexity is a search engine, not an LLM.** You have Claude for reasoning — Perplexity is for current web information with citations.
 
-> ## 🔎 House rule: use the Search API only
-> In this setup we use **`search()`** and nothing else. The **Chat Completions (sonar) models are intentionally not used** — Claude does the reasoning and synthesis from raw search results.
-> - `search()` is flat-rate ($5/1K requests), returns raw results + citations, and is fast.
-> - It avoids the chat 30s-timeout gotcha entirely.
-> - The `chat()` / `reason()` / `deepResearch()` functions remain in the lib for **API-reference completeness only** (and because other projects copy this lib) — don't reach for them here.
+> ## 🔎 House rule: Search API + Agent API (Claude), never Sonar
+> Two tools, both grounded in Perplexity search:
+> - **`search()`** — raw ranked web results + citations, flat-rate ($5/1K), no LLM. Hand results to Claude (me) to reason over.
+> - **`agent()`** — a **third-party frontier model (default Claude Sonnet 4.6)** with live web search + citations. This is the "Claude, with search" path. Endpoint `POST /v1/agent`; priced at the provider's direct rate ($3/M in, $15/M out) + ~$0.005/search.
+>
+> **The Perplexity Sonar models are intentionally NOT used** — no `chat()` / `reason()` / `deepResearch()` (sonar / sonar-pro / sonar-reasoning-pro / sonar-deep-research). Those stay in the lib for API-reference completeness and downstream copies, but they're not the path here. If you want a synthesized answer, use `agent()` (Claude); if you want raw sources, use `search()`.
 
 ## Quick Start
 
@@ -39,6 +40,26 @@ await pplx.search('query');
 
 There is no synthesized `answer` field from `/search` — that's by design. Hand the `results` + `citations` to Claude for synthesis.
 
+## The Agent API (`/v1/agent`) — Claude Sonnet with search
+
+A third-party frontier model with Perplexity web-search grounding. Default model is **`anthropic/claude-sonnet-4-6`**. OpenAI `/v1/responses`-compatible. Token-priced at the provider's direct rate (no markup) + a per-search tool charge.
+
+```js
+import 'dotenv/config';
+import { agent } from './lib/perplexity.js';
+
+const { answer, citations, results, usage } = await agent('your question', {
+  // model: 'anthropic/claude-sonnet-4-6',   // default; also CLAUDE_OPUS / CLAUDE_HAIKU in AGENT_MODELS
+  // webSearch: true,                         // default; set false to disable the search tool
+  instructions: 'Use web_search for anything recent. Cite sources.',
+});
+console.log(answer);            // Claude's synthesized answer
+console.log(citations);         // source URLs
+console.log(usage.cost.total_cost);  // $ for the call
+```
+
+Model IDs live in `AGENT_MODELS` (constants). Verified live: a Sonnet call with one web search ≈ $0.015–0.02.
+
 ## Examples
 
 | # | File | What |
@@ -47,8 +68,9 @@ There is no synthesized `answer` field from `/search` — that's by design. Hand
 | 02 | `domain-filtering.js` | Allow/block domains |
 | 03 | `date-filtering.js` | Recency + date range + spoiler safety |
 | 10 | `parallel-search.js` | Concurrent search queries |
+| 11 | `agent-claude.js` | **Agent API — Claude Sonnet 4.6 + web search** |
 
-*Search-only examples. (04 chat-completions, 05 deep-research, 06 reasoning, 07 streaming, 08 structured-output, 09 openai-sdk-compat remain on disk as Chat-API references but are **not used here** — see House rule above.)*
+*Search + Agent examples are the ones used here. (04 chat-completions, 05 deep-research, 06 reasoning, 07 streaming, 08 structured-output, 09 openai-sdk-compat remain on disk as Sonar/Chat-API references but are **not used here** — see House rule above.)*
 
 ## Docs
 
